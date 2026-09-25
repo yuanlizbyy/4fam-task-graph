@@ -1,0 +1,437 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "R01",
+      "name": "EVM DEX Aggregator Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 1.5,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Evaluate 0x / 1inch / KyberSwap on BSC & Robinhood EVM for unsigned tx generation, quote validity, and 1% fee parameter (feeRecipient)."
+    },
+    {
+      "id": "R02",
+      "name": "Cross-Chain Inflow & Unified Balance Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 2,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Investigate Li.Fi / Relay / internal ledger solutions to abstract chains, gas, and bridges, routing deposits to a unified USD cash balance."
+    },
+    {
+      "id": "R03",
+      "name": "Fiat On/Off-Ramp Provider Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 1.5,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Compare Meld vs Onramper on global coverage, fees, KYC flows, and sandbox test for card buy and fiat withdrawal."
+    },
+    {
+      "id": "R04",
+      "name": "Data Scraper & Wallet Tracking Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 2,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Verify scraping feasibility of Fomo / GMGN thesis & images, define on-chain swap parsing, and design Hot Picks algorithms."
+    },
+    {
+      "id": "R05",
+      "name": "Privy Embedded Wallet Lifecycle Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 1.5,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Validate 3-question profile saving, silent embedded wallet creation, multi-chain switching, and client-side signing (ref dev.4fam.app)."
+    },
+    {
+      "id": "R06",
+      "name": "AI Assistant LLM & Grounding Spike",
+      "phase": "Phase 0: Spikes",
+      "lane": "spikes",
+      "days": 1,
+      "track": "Research",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Evaluate LLM APIs (Gemini/Claude), design 4fam knowledge base, and define system prompt & grounding for the 4 preset questions."
+    },
+    {
+      "id": "D01",
+      "name": "Thesis Scraper & Media Pipeline",
+      "phase": "Phase 1: Data Backend",
+      "lane": "data",
+      "days": 2,
+      "track": "Data",
+      "assignee": "Unassigned",
+      "deps": [
+        "R04"
+      ],
+      "desc": "Automate crawler jobs to ingest hot trader theses, meme images, and callouts into a structured DB."
+    },
+    {
+      "id": "D02",
+      "name": "Smart Wallet On-Chain Swap Listener",
+      "phase": "Phase 1: Data Backend",
+      "lane": "data",
+      "days": 2,
+      "track": "Data",
+      "assignee": "Unassigned",
+      "deps": [
+        "D01",
+        "R04"
+      ],
+      "desc": "Listen to priority wallets on EVM chains, parse swap transactions, record fill prices and token balance shifts."
+    },
+    {
+      "id": "D03",
+      "name": "Real-time Price Feeds & Anomaly Engine",
+      "phase": "Phase 1: Data Backend",
+      "lane": "data",
+      "days": 2,
+      "track": "Data",
+      "assignee": "Unassigned",
+      "deps": [
+        "D01"
+      ],
+      "desc": "Maintain real-time token pricing, aggregate 1h/24h candles, and detect trader 24h ROI >100% or token 1h price spikes."
+    },
+    {
+      "id": "D04",
+      "name": "Hot Picks Ranking Engine & Internal API",
+      "phase": "Phase 1: Data Backend",
+      "lane": "data",
+      "days": 1.5,
+      "track": "Data",
+      "assignee": "Unassigned",
+      "deps": [
+        "D02",
+        "D03"
+      ],
+      "desc": "Calculate top 5 trending tokens and top 5 traders; expose internal APIs to 4fam Backend for prices and anomaly alerts."
+    },
+    {
+      "id": "B01",
+      "name": "Foundation, DB Schema & Privy Auth Gateway",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1.5,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "R05"
+      ],
+      "desc": "PostgreSQL schema design; verify Privy JWTs, store user profile answers, and manage unified sessions."
+    },
+    {
+      "id": "B02",
+      "name": "Home Feed & Social Core API",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 2,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "D04"
+      ],
+      "desc": "Aggregate For You & Following feeds, D01 trader and D03 token details, comments, and likes."
+    },
+    {
+      "id": "B03",
+      "name": "Hot Picks Aggregation API",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "D04"
+      ],
+      "desc": "Aggregate Data Backend trending tokens & traders and expose /v1/picks/hot for client apps."
+    },
+    {
+      "id": "B04",
+      "name": "Multi-Chain Deposit Listener & Unified Ledger",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 2,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "R02"
+      ],
+      "desc": "Listen for incoming USDC/USDT/ETH/BNB across EVM chains, convert to unified USD cash balance, and abstract chain complexity."
+    },
+    {
+      "id": "B05",
+      "name": "Fiat Gateway & Webhook State Machine",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1.5,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "R03"
+      ],
+      "desc": "Integrate Meld/Onramper to initiate fiat buy and withdrawal orders; handle webhook callbacks to update user balances."
+    },
+    {
+      "id": "B06",
+      "name": "Meme Trade Engine (Quote & Broadcast)",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 2,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "R01",
+        "B04"
+      ],
+      "desc": "Expose /quote (deduct 1% platform fee, assemble unsigned transaction) and /broadcast (relay client-signed tx to EVM RPCs)."
+    },
+    {
+      "id": "B07",
+      "name": "Trade Settlement Worker & Portfolio Ledger",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1.5,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B06"
+      ],
+      "desc": "Poll transaction receipts asynchronously, handle retries, update user holdings, and log operations."
+    },
+    {
+      "id": "B08",
+      "name": "AI Assistant Gateway & Grounding Service",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1.5,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "R06",
+        "B03"
+      ],
+      "desc": "Connect to LLM API, enrich prompts with 4fam FAQ, live hot tokens/traders context, and provide conversational API."
+    },
+    {
+      "id": "B09",
+      "name": "Web Push Service & Cleaner DSP Attribution",
+      "phase": "Phase 2: 4fam Backend",
+      "lane": "backend",
+      "days": 1.5,
+      "track": "Backend",
+      "assignee": "Unassigned",
+      "deps": [
+        "B01",
+        "B07"
+      ],
+      "desc": "Dispatch push alerts with rate limits; parse Cleaner DSP click params and trigger conversion postbacks."
+    },
+    {
+      "id": "A01",
+      "name": "PWA Scaffold, Design Tokens & 4-Tab Nav",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 1.5,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [],
+      "desc": "Integrate component-spec-v1 tokens, set up 4-tab nav (Home/AI/Hot picks/Portfolio) and persistent header."
+    },
+    {
+      "id": "A02",
+      "name": "3-Question Profile & Privy 1-Click Wallet",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "R05",
+        "A01",
+        "B01"
+      ],
+      "desc": "Implement 3-question profile, Privy silent embedded wallet creation, and A03-D Deposit guide with Skip."
+    },
+    {
+      "id": "A03",
+      "name": "Home Tab: Feed Cards with Direct Buy",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B02"
+      ],
+      "desc": "Build feed cards: trader header, folded thesis, meme image, live position card, and direct Buy button."
+    },
+    {
+      "id": "A04",
+      "name": "AI Tab: 'Ask the fam' Conversational UI",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 1.5,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B08"
+      ],
+      "desc": "Implement 4 preset question cards, chat input, thinking state, and actionable quick-links (ref screenshot)."
+    },
+    {
+      "id": "A05",
+      "name": "Hot Picks Tab: Trending Tokens & Traders",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 1.5,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B03"
+      ],
+      "desc": "Dedicated tab with Trending Memecoins (quick Buy) and Top Traders (quick Follow)."
+    },
+    {
+      "id": "A06",
+      "name": "Trader (D01) & Token (D03) Profile Pages",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B02"
+      ],
+      "desc": "D01 profile (ROI, open/closed positions) and D03 token view (charts, callouts, holders, price alert trigger)."
+    },
+    {
+      "id": "A07",
+      "name": "Multi-Chain Deposit & Withdrawal Sheets",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B04",
+        "B05"
+      ],
+      "desc": "M01 deposit modal (multi-chain QR/address + fiat ramp checkout) and M02 fiat withdrawal sheet."
+    },
+    {
+      "id": "A08",
+      "name": "Pre-Deposit Backup Intercept & Global Banner",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 1.5,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A02",
+        "A07"
+      ],
+      "desc": "Prompt A04 backup before first deposit; show persistent top banner if skipped until verified."
+    },
+    {
+      "id": "A09",
+      "name": "T01 Manual Trading Sheet & Privy Signing",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B06",
+        "B07"
+      ],
+      "desc": "Custom keypad, quick percentages, real-time quote preview; sign with Privy locally and submit to backend."
+    },
+    {
+      "id": "A10",
+      "name": "Portfolio Asset View & Event Landings",
+      "phase": "Phase 3: App (PWA)",
+      "lane": "app",
+      "days": 2,
+      "track": "App",
+      "assignee": "Unassigned",
+      "deps": [
+        "A01",
+        "B07",
+        "B09"
+      ],
+      "desc": "Cash balance, holdings with quick sell, unified transaction history, L01/L02 event landings, and S01 share card."
+    },
+    {
+      "id": "M01",
+      "name": "Cleaner DSP Attribution & Postback Integration",
+      "phase": "Phase 4: Launch",
+      "lane": "launch",
+      "days": 1.5,
+      "track": "Launch",
+      "assignee": "Unassigned",
+      "deps": [
+        "B09",
+        "A02"
+      ],
+      "desc": "Capture DSP click_id and cleaner_app_id from PWA URL; verify wallet creation, deposit, and first trade postbacks."
+    },
+    {
+      "id": "M02",
+      "name": "End-to-End Accounting & Trading Smoke Test",
+      "phase": "Phase 4: Launch",
+      "lane": "launch",
+      "days": 2,
+      "track": "Launch",
+      "assignee": "Unassigned",
+      "deps": [
+        "A08",
+        "A09",
+        "B07",
+        "A07",
+        "B04",
+        "M01"
+      ],
+      "desc": "End-to-end rehearsal: DSP click -> Profile -> Privy login -> Multi-chain deposit -> Buy Meme (1% fee) -> Sell -> Withdraw."
+    },
+    {
+      "id": "M03",
+      "name": "Production Deployment & 10k Traffic Canary",
+      "phase": "Phase 4: Launch",
+      "lane": "launch",
+      "days": 1.5,
+      "track": "Launch",
+      "assignee": "Unassigned",
+      "deps": [
+        "M02"
+      ],
+      "desc": "Configure RPC failover, DB monitoring, PWA CDN; launch initial 10,000 cleaner impression canary test."
+    }
+  ]
+}

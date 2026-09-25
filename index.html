@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4fam Phase 1 — Interactive Task & Dependency Topology</title>
+  <script src="./tailwindcss.min.js"></script>
+  
+  <style>
+    /* Standalone Resilient Fallback CSS (Guarantees layout even if CDN script is blocked) */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0B0E14;
+      color: #F1F5F9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 1.25rem;
+      min-height: 100vh;
+      user-select: none;
+    }
+    
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+
+    /* Header & Panel Styles */
+    .app-header {
+      max-width: 1680px;
+      margin: 0 auto 1.25rem auto;
+      background: #151922;
+      border: 1px solid #1E293B;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+    }
+    .main-board-container {
+      max-width: 1680px;
+      margin: 0 auto;
+      position: relative;
+      overflow-x: auto;
+      background: #12161F;
+      border: 1px solid #1E293B;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 20px 30px -10px rgba(0,0,0,0.6);
+    }
+    .columns-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(260px, 1fr));
+      gap: 1rem;
+      min-width: 1320px;
+      position: relative;
+      z-index: 10;
+    }
+    .col-lane {
+      background: rgba(23, 28, 38, 0.85);
+      border: 1px solid #1E293B;
+      border-radius: 0.875rem;
+      padding: 0.875rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .lane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 0.625rem;
+      border-bottom: 1px solid #1E293B;
+    }
+
+    /* Cards */
+    .node-card {
+      background: #1C222E;
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+    }
+    .node-card:hover {
+      transform: translateY(-2px);
+      border-color: #64748B;
+    }
+    .node-card.selected {
+      border-color: #3B82F6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+      background: rgba(30, 58, 138, 0.35) !important;
+      z-index: 30;
+      opacity: 1 !important;
+    }
+    .node-card.upstream {
+      border-color: #10B981 !important;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4) !important;
+      background: rgba(6, 78, 59, 0.3) !important;
+      z-index: 30;
+      opacity: 1 !important;
+    }
+    .node-card.downstream {
+      border-color: #F59E0B !important;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4) !important;
+      background: rgba(120, 53, 15, 0.3) !important;
+      z-index: 30;
+      opacity: 1 !important;
+    }
+    .node-card.dimmed {
+      opacity: 0.25 !important;
+      border-color: #1E293B !important;
+    }
+    .node-card.dimmed:hover {
+      opacity: 0.6 !important;
+    }
+
+    /* SVG Lines */
+    .line-upstream {
+      stroke: #10B981;
+      stroke-width: 2.5;
+      stroke-dasharray: 6 3;
+      animation: dash 1s linear infinite;
+    }
+    .line-downstream {
+      stroke: #F59E0B;
+      stroke-width: 2.5;
+      stroke-dasharray: 6 3;
+      animation: dash 1s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -9; }
+    }
+
+    /* Buttons & Inputs */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 0.625rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: #F59E0B;
+      color: #0F172A;
+    }
+    .btn-primary:hover {
+      background: #FBBF24;
+    }
+    .btn-secondary {
+      background: #1E293B;
+      color: #CBD5E1;
+      border-color: #334155;
+    }
+    .btn-secondary:hover {
+      background: #334155;
+      color: #F8FAFC;
+    }
+    .btn-blue {
+      background: #2563EB;
+      color: white;
+    }
+    .btn-blue:hover {
+      background: #3B82F6;
+    }
+    .btn-red {
+      background: #BE123C;
+      color: white;
+    }
+    .btn-red:hover {
+      background: #E11D48;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 0.375rem;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge-yuki {
+      background: rgba(88, 28, 135, 0.7);
+      color: #D8B4FE;
+      border-color: rgba(168, 85, 247, 0.4);
+    }
+    .badge-buzz {
+      background: rgba(22, 78, 99, 0.7);
+      color: #67E8F9;
+      border-color: rgba(6, 182, 212, 0.4);
+    }
+    .badge-anton {
+      background: rgba(6, 78, 59, 0.7);
+      color: #6EE7B7;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .badge-unassigned {
+      background: rgba(30, 41, 59, 0.8);
+      color: #94A3B8;
+      border-color: #334155;
+    }
+
+    /* Modal Backdrop */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-[#0B0E14] text-slate-100 antialiased min-h-screen p-4 md:p-6 font-sans">
+
+  <!-- Header & Toolbar -->
+  <header class="app-header max-w-[1680px] mx-auto mb-6 bg-[#151922] border border-slate-800 rounded-2xl p-5 shadow-xl">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="px-2.5 py-1 text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-lg">4fam V1</span>
+          <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            Task & Dependency Topology
+          </h1>
+          <span id="taskCountBadge" class="text-xs text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-500/30 font-medium font-mono">
+            32 Tasks · All Unassigned
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-400 mt-1.5">
+          💡 Click any card to highlight <span class="text-emerald-400 font-semibold">Prerequisites (Green)</span> & <span class="text-amber-400 font-semibold">Unlocks (Orange)</span>. Tasks are initially <span class="text-slate-300 font-medium">unassigned</span>. Support assigning to <span class="text-purple-400 font-semibold">Yuki</span>, <span class="text-cyan-400 font-semibold">Buzz</span>, or <span class="text-emerald-400 font-semibold">Anton</span>.
+        </p>
+      </div>
+
+      <!-- Action & Filter Controls -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Search Input -->
+        <div class="relative min-w-[140px]">
+          <input id="searchInput" type="text" placeholder="Search task/ID..." 
+                 class="w-full bg-[#1C222E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition" />
+        </div>
+
+        <!-- Filter by Assignee -->
+        <div class="flex items-center gap-1 bg-[#1C222E] p-1 border border-slate-700 rounded-xl text-xs">
+          <span class="text-slate-500 text-[11px] px-1.5 font-medium">Owner:</span>
+          <button class="owner-btn px-2 py-1 rounded-lg font-medium text-amber-300 bg-amber-400/15 transition" data-owner="all">All</button>
+          <button class="owner-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-purple-300 transition" data-owner="Yuki">🟣 Yuki <span id="cnt-Yuki" class="font-mono text-[10px] opacity-70"></span></button>
+          <button class="owner-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-cyan-300 transition" data-owner="Buzz">🔵 Buzz <span id="cnt-Buzz" class="font-mono text-[10px] opacity-70"></span></button>
+          <button class="owner-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-emerald-300 transition" data-owner="Anton">🟢 Anton <span id="cnt-Anton" class="font-mono text-[10px] opacity-70"></span></button>
+          <button class="owner-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-owner="Unassigned">⚪ Unassigned <span id="cnt-Unassigned" class="font-mono text-[10px] opacity-70"></span></button>
+        </div>
+
+        <!-- Filter Tracks -->
+        <div class="flex items-center gap-1 bg-[#1C222E] p-1 border border-slate-700 rounded-xl text-xs">
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-amber-300 bg-amber-400/15 transition" data-track="all">All</button>
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-track="Research">Spikes</button>
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-track="Data">Data</button>
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-track="Backend">4fam</button>
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-track="App">App</button>
+          <button class="track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition" data-track="Launch">Launch</button>
+        </div>
+
+        <!-- Add Task Button -->
+        <button id="addTaskBtn" class="btn btn-primary shadow-lg shadow-amber-500/20">
+          <span>+ Add Task</span>
+        </button>
+
+        <!-- Hidden JSON File Input with explicit inline style -->
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none !important;">
+        <button id="importBtn" class="btn btn-secondary" title="Import tasks from JSON file">
+          <span>📥 Import</span>
+        </button>
+
+        <!-- Export JSON Button -->
+        <button id="exportBtn" class="btn btn-secondary" title="Export tasks as JSON file">
+          <span>📤 Export</span>
+        </button>
+
+        <button id="saveSharedBtn" class="btn btn-primary" type="button" disabled title="Save changes for the team">
+          💾 Save for team
+        </button>
+        <details class="text-xs text-slate-300">
+          <summary class="btn btn-secondary">✏️ Editor access</summary>
+          <div class="mt-2 p-3 bg-[#1C222E] border border-slate-700 rounded-xl max-w-sm">
+            <label for="githubToken" class="block mb-1">GitHub fine-grained token with Contents read/write access to yuanlizbyy/4fam-task-graph</label>
+            <input id="githubToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste token for this session"
+                   class="w-full bg-[#0B0E14] border border-slate-700 rounded-lg px-3 py-2 text-slate-100">
+            <p class="mt-2 text-slate-400">Kept only in this tab and sent only to api.github.com when saving.</p>
+          </div>
+        </details>
+
+        <!-- Share the live team page -->
+        <button id="shareUrlBtn" class="btn btn-blue shadow-md" title="Copy the live team page URL">
+          <span>🔗 Share team link</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="resetBtn" class="btn btn-secondary" title="Reset all changes to defaults">
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Legend & Active State Text -->
+  <div class="max-w-[1680px] mx-auto mb-4 flex flex-wrap items-center justify-between text-xs text-slate-400 px-2 gap-3">
+    <div class="flex flex-wrap items-center gap-4">
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 border border-blue-400"></span> Selected</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-400"></span> Prerequisites</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 border border-amber-400"></span> Unlocks</span>
+      <span class="flex items-center gap-2 border-l border-slate-800 pl-3">
+        <span class="badge badge-yuki">🟣 Yuki</span>
+        <span class="badge badge-buzz">🔵 Buzz</span>
+        <span class="badge badge-anton">🟢 Anton</span>
+        <span class="badge badge-unassigned">⚪ Unassigned</span>
+      </span>
+    </div>
+    <div id="activeStateText" class="text-amber-300 font-medium">Status: Overview mode (Click any card to inspect or assign)</div>
+  </div>
+  <div class="max-w-[1680px] mx-auto mb-4 px-2 text-xs flex flex-wrap items-center gap-3">
+    <span id="saveStatus" role="status" aria-live="polite" class="text-slate-300">Loading team tasks…</span>
+    <button id="reloadSharedBtn" class="btn btn-secondary hidden" type="button">Reload team version</button>
+  </div>
+
+  <!-- Main Board Canvas with SVG Overlay -->
+  <main class="main-board-container rounded-2xl border border-slate-800 bg-[#12161F] p-4 lg:p-6 shadow-2xl">
+    
+    <!-- SVG Lines Layer -->
+    <svg id="svgLayer" class="absolute inset-0 w-full h-full pointer-events-none z-20" style="min-width: 1320px;">
+      <defs>
+        <marker id="arrow-upstream" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981" />
+        </marker>
+        <marker id="arrow-downstream" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#F59E0B" />
+        </marker>
+      </defs>
+    </svg>
+
+    <!-- 5 Columns Container -->
+    <div id="columnsContainer" class="columns-grid">
+      
+      <!-- Col 0: Spikes -->
+      <div class="col-lane" data-col="0">
+        <div class="lane-header">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>
+            <h3 class="font-bold text-sm text-slate-200">Phase 0: Spikes</h3>
+          </div>
+          <span id="badge-spikes" class="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-400/10 text-purple-300 font-medium border border-purple-400/20">6 Spikes</span>
+        </div>
+        <div class="cards-list flex flex-col gap-2.5" id="lane-spikes"></div>
+      </div>
+
+      <!-- Col 1: Data Backend -->
+      <div class="col-lane" data-col="1">
+        <div class="lane-header">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>
+            <h3 class="font-bold text-sm text-slate-200">Phase 1: Data Backend</h3>
+          </div>
+          <span id="badge-data" class="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-400/10 text-cyan-300 font-medium border border-cyan-400/20">4 Tasks</span>
+        </div>
+        <div class="cards-list flex flex-col gap-2.5" id="lane-data"></div>
+      </div>
+
+      <!-- Col 2: 4fam Backend -->
+      <div class="col-lane" data-col="2">
+        <div class="lane-header">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block"></span>
+            <h3 class="font-bold text-sm text-slate-200">Phase 2: 4fam Backend</h3>
+          </div>
+          <span id="badge-backend" class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-400/10 text-blue-300 font-medium border border-blue-400/20">9 Tasks</span>
+        </div>
+        <div class="cards-list flex flex-col gap-2.5" id="lane-backend"></div>
+      </div>
+
+      <!-- Col 3: App PWA -->
+      <div class="col-lane" data-col="3">
+        <div class="lane-header">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+            <h3 class="font-bold text-sm text-slate-200">Phase 3: App (PWA)</h3>
+          </div>
+          <span id="badge-app" class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-400/10 text-amber-300 font-medium border border-amber-400/20">10 Tasks</span>
+        </div>
+        <div class="cards-list flex flex-col gap-2.5" id="lane-app"></div>
+      </div>
+
+      <!-- Col 4: Launch -->
+      <div class="col-lane" data-col="4">
+        <div class="lane-header">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+            <h3 class="font-bold text-sm text-slate-200">Phase 4: Launch</h3>
+          </div>
+          <span id="badge-launch" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-400/10 text-emerald-300 font-medium border border-emerald-400/20">3 Tasks</span>
+        </div>
+        <div class="cards-list flex flex-col gap-2.5" id="lane-launch"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Inspector Bottom Sheet -->
+  <div id="inspectorPanel" class="app-header max-w-[1680px] mx-auto mt-6 bg-[#151922] border border-slate-800 rounded-2xl p-5 shadow-2xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div class="flex items-center gap-3">
+        <span id="inspId" class="px-3 py-1 font-mono font-bold text-sm bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg">ID</span>
+        <div>
+          <h2 id="inspTitle" class="text-base font-bold text-white">Click any task card above to inspect or assign</h2>
+        </div>
+        <span id="inspDays" class="text-xs bg-slate-800 text-amber-300 px-2.5 py-1 rounded-md border border-slate-700 font-mono">-- d</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <div id="inspPhase" class="text-xs text-slate-400 bg-[#1C222E] px-3 py-1.5 rounded-lg border border-slate-800">
+          Phase: --
+        </div>
+
+        <!-- Quick Assignee Selector -->
+        <div class="flex items-center gap-2 bg-[#1C222E] px-3 py-1.5 rounded-lg border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">Assignee:</span>
+          <select id="inspAssigneeSelect" class="bg-slate-900 border border-slate-700 rounded text-xs font-semibold text-slate-200 focus:outline-none cursor-pointer py-1 px-2">
+            <option value="Unassigned" class="text-slate-400">⚪ Unassigned</option>
+            <option value="Yuki" class="text-purple-300">🟣 Yuki</option>
+            <option value="Buzz" class="text-cyan-300">🔵 Buzz</option>
+            <option value="Anton" class="text-emerald-300">🟢 Anton</option>
+          </select>
+        </div>
+
+        <!-- Edit and Delete Buttons (Visible when a task is selected) -->
+        <button id="editTaskBtn" class="btn btn-blue hidden shadow-md">
+          ✏️ Edit Task
+        </button>
+        <button id="deleteTaskBtn" class="btn btn-red hidden">
+          🗑️ Delete Task
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 text-xs">
+      <!-- Description -->
+      <div class="md:col-span-1 bg-[#1A1F2B] p-3.5 rounded-xl border border-slate-800/80">
+        <div class="text-slate-400 font-semibold mb-2">📋 Task Scope & Deliverables</div>
+        <p id="inspDesc" class="text-slate-300 leading-relaxed">
+          Select a task card above to view its technical deliverables, assign owner, and explore dependency relationships.
+        </p>
+      </div>
+
+      <!-- Upstream Dependencies -->
+      <div class="bg-[#1A1F2B] p-3.5 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+            Prerequisites (Must finish first)
+          </span>
+          <span id="inspUpstreamCount" class="text-slate-500 font-mono">0</span>
+        </div>
+        <div id="inspUpstreamList" class="flex flex-wrap gap-2">
+          <span class="text-slate-500 italic">No prerequisites (Can start immediately)</span>
+        </div>
+      </div>
+
+      <!-- Downstream Dependents -->
+      <div class="bg-[#1A1F2B] p-3.5 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-amber-400 font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+            Unlocks (Subsequent dependents)
+          </span>
+          <span id="inspDownstreamCount" class="text-slate-500 font-mono">0</span>
+        </div>
+        <div id="inspDownstreamList" class="flex flex-wrap gap-2">
+          <span class="text-slate-500 italic">No downstream dependents (Terminal milestone)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Create / Edit Task -->
+  <div id="taskModal" class="modal-overlay hidden">
+    <div class="bg-[#151922] border border-slate-700 rounded-2xl w-full max-w-xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-800 mb-4">
+        <h3 id="modalTitle" class="text-base font-bold text-white">Create / Edit Task</h3>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <form id="taskForm" class="space-y-4 text-xs">
+        <input type="hidden" id="formMode" value="create">
+        <input type="hidden" id="formOriginalId" value="">
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Task ID</label>
+            <input type="text" id="formId" required maxlength="16" pattern="[A-Za-z][A-Za-z0-9_-]{0,15}" placeholder="e.g. B10"
+                   class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-amber-400">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-slate-400 font-semibold mb-1">Task Name</label>
+            <input type="text" id="formName" required maxlength="200" placeholder="e.g. User Profile API"
+                   class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-400">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Phase / Lane</label>
+            <select id="formLane" class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-400">
+              <option value="spikes">Phase 0: Spikes</option>
+              <option value="data">Phase 1: Data Backend</option>
+              <option value="backend">Phase 2: 4fam Backend</option>
+              <option value="app">Phase 3: App (PWA)</option>
+              <option value="launch">Phase 4: Launch</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Assignee</label>
+            <select id="formAssignee" class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-400 font-semibold">
+              <option value="Unassigned">⚪ Unassigned</option>
+              <option value="Yuki">🟣 Yuki</option>
+              <option value="Buzz">🔵 Buzz</option>
+              <option value="Anton">🟢 Anton</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Duration (Days)</label>
+            <input type="number" id="formDays" step="0.5" min="0.5" max="10" required value="1.5"
+                   class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-amber-400">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Description / Deliverables</label>
+          <textarea id="formDesc" rows="3" maxlength="4000" placeholder="Explain technical scope and expected output..."
+                    class="w-full bg-[#1C222E] border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-400"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Prerequisites (Check dependencies)</label>
+          <div id="formDepsContainer" class="bg-[#1C222E] border border-slate-700 rounded-lg p-3 max-h-36 overflow-y-auto grid grid-cols-2 gap-2 text-[11px]">
+            <!-- Dynamic checkboxes -->
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <button type="button" id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Engine -->
+  <script>
+    // 32 Tasks - ALL INITIAL ASSIGNEES ARE EMPTY / UNASSIGNED
+    const DEFAULT_TASKS = [
+      // Phase 0: Spikes (6)
+      { id: "R01", name: "EVM DEX Aggregator Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 1.5, track: "Research", assignee: "Unassigned", deps: [], desc: "Evaluate 0x / 1inch / KyberSwap on BSC & Robinhood EVM for unsigned tx generation, quote validity, and 1% fee parameter (feeRecipient)." },
+      { id: "R02", name: "Cross-Chain Inflow & Unified Balance Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 2.0, track: "Research", assignee: "Unassigned", deps: [], desc: "Investigate Li.Fi / Relay / internal ledger solutions to abstract chains, gas, and bridges, routing deposits to a unified USD cash balance." },
+      { id: "R03", name: "Fiat On/Off-Ramp Provider Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 1.5, track: "Research", assignee: "Unassigned", deps: [], desc: "Compare Meld vs Onramper on global coverage, fees, KYC flows, and sandbox test for card buy and fiat withdrawal." },
+      { id: "R04", name: "Data Scraper & Wallet Tracking Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 2.0, track: "Research", assignee: "Unassigned", deps: [], desc: "Verify scraping feasibility of Fomo / GMGN thesis & images, define on-chain swap parsing, and design Hot Picks algorithms." },
+      { id: "R05", name: "Privy Embedded Wallet Lifecycle Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 1.5, track: "Research", assignee: "Unassigned", deps: [], desc: "Validate 3-question profile saving, silent embedded wallet creation, multi-chain switching, and client-side signing (ref dev.4fam.app)." },
+      { id: "R06", name: "AI Assistant LLM & Grounding Spike", phase: "Phase 0: Spikes", lane: "spikes", days: 1.0, track: "Research", assignee: "Unassigned", deps: [], desc: "Evaluate LLM APIs (Gemini/Claude), design 4fam knowledge base, and define system prompt & grounding for the 4 preset questions." },
+
+      // Phase 1: Data Backend (4)
+      { id: "D01", name: "Thesis Scraper & Media Pipeline", phase: "Phase 1: Data Backend", lane: "data", days: 2.0, track: "Data", assignee: "Unassigned", deps: ["R04"], desc: "Automate crawler jobs to ingest hot trader theses, meme images, and callouts into a structured DB." },
+      { id: "D02", name: "Smart Wallet On-Chain Swap Listener", phase: "Phase 1: Data Backend", lane: "data", days: 2.0, track: "Data", assignee: "Unassigned", deps: ["D01", "R04"], desc: "Listen to priority wallets on EVM chains, parse swap transactions, record fill prices and token balance shifts." },
+      { id: "D03", name: "Real-time Price Feeds & Anomaly Engine", phase: "Phase 1: Data Backend", lane: "data", days: 2.0, track: "Data", assignee: "Unassigned", deps: ["D01"], desc: "Maintain real-time token pricing, aggregate 1h/24h candles, and detect trader 24h ROI >100% or token 1h price spikes." },
+      { id: "D04", name: "Hot Picks Ranking Engine & Internal API", phase: "Phase 1: Data Backend", lane: "data", days: 1.5, track: "Data", assignee: "Unassigned", deps: ["D02", "D03"], desc: "Calculate top 5 trending tokens and top 5 traders; expose internal APIs to 4fam Backend for prices and anomaly alerts." },
+
+      // Phase 2: 4fam Backend (9)
+      { id: "B01", name: "Foundation, DB Schema & Privy Auth Gateway", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.5, track: "Backend", assignee: "Unassigned", deps: ["R05"], desc: "PostgreSQL schema design; verify Privy JWTs, store user profile answers, and manage unified sessions." },
+      { id: "B02", name: "Home Feed & Social Core API", phase: "Phase 2: 4fam Backend", lane: "backend", days: 2.0, track: "Backend", assignee: "Unassigned", deps: ["B01", "D04"], desc: "Aggregate For You & Following feeds, D01 trader and D03 token details, comments, and likes." },
+      { id: "B03", name: "Hot Picks Aggregation API", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.0, track: "Backend", assignee: "Unassigned", deps: ["B01", "D04"], desc: "Aggregate Data Backend trending tokens & traders and expose /v1/picks/hot for client apps." },
+      { id: "B04", name: "Multi-Chain Deposit Listener & Unified Ledger", phase: "Phase 2: 4fam Backend", lane: "backend", days: 2.0, track: "Backend", assignee: "Unassigned", deps: ["B01", "R02"], desc: "Listen for incoming USDC/USDT/ETH/BNB across EVM chains, convert to unified USD cash balance, and abstract chain complexity." },
+      { id: "B05", name: "Fiat Gateway & Webhook State Machine", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.5, track: "Backend", assignee: "Unassigned", deps: ["B01", "R03"], desc: "Integrate Meld/Onramper to initiate fiat buy and withdrawal orders; handle webhook callbacks to update user balances." },
+      { id: "B06", name: "Meme Trade Engine (Quote & Broadcast)", phase: "Phase 2: 4fam Backend", lane: "backend", days: 2.0, track: "Backend", assignee: "Unassigned", deps: ["B01", "R01", "B04"], desc: "Expose /quote (deduct 1% platform fee, assemble unsigned transaction) and /broadcast (relay client-signed tx to EVM RPCs)." },
+      { id: "B07", name: "Trade Settlement Worker & Portfolio Ledger", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.5, track: "Backend", assignee: "Unassigned", deps: ["B06"], desc: "Poll transaction receipts asynchronously, handle retries, update user holdings, and log operations." },
+      { id: "B08", name: "AI Assistant Gateway & Grounding Service", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.5, track: "Backend", assignee: "Unassigned", deps: ["B01", "R06", "B03"], desc: "Connect to LLM API, enrich prompts with 4fam FAQ, live hot tokens/traders context, and provide conversational API." },
+      { id: "B09", name: "Web Push Service & Cleaner DSP Attribution", phase: "Phase 2: 4fam Backend", lane: "backend", days: 1.5, track: "Backend", assignee: "Unassigned", deps: ["B01", "B07"], desc: "Dispatch push alerts with rate limits; parse Cleaner DSP click params and trigger conversion postbacks." },
+
+      // Phase 3: App PWA (10)
+      { id: "A01", name: "PWA Scaffold, Design Tokens & 4-Tab Nav", phase: "Phase 3: App (PWA)", lane: "app", days: 1.5, track: "App", assignee: "Unassigned", deps: [], desc: "Integrate component-spec-v1 tokens, set up 4-tab nav (Home/AI/Hot picks/Portfolio) and persistent header." },
+      { id: "A02", name: "3-Question Profile & Privy 1-Click Wallet", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["R05", "A01", "B01"], desc: "Implement 3-question profile, Privy silent embedded wallet creation, and A03-D Deposit guide with Skip." },
+      { id: "A03", name: "Home Tab: Feed Cards with Direct Buy", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["A01", "B02"], desc: "Build feed cards: trader header, folded thesis, meme image, live position card, and direct Buy button." },
+      { id: "A04", name: "AI Tab: 'Ask the fam' Conversational UI", phase: "Phase 3: App (PWA)", lane: "app", days: 1.5, track: "App", assignee: "Unassigned", deps: ["A01", "B08"], desc: "Implement 4 preset question cards, chat input, thinking state, and actionable quick-links (ref screenshot)." },
+      { id: "A05", name: "Hot Picks Tab: Trending Tokens & Traders", phase: "Phase 3: App (PWA)", lane: "app", days: 1.5, track: "App", assignee: "Unassigned", deps: ["A01", "B03"], desc: "Dedicated tab with Trending Memecoins (quick Buy) and Top Traders (quick Follow)." },
+      { id: "A06", name: "Trader (D01) & Token (D03) Profile Pages", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["A01", "B02"], desc: "D01 profile (ROI, open/closed positions) and D03 token view (charts, callouts, holders, price alert trigger)." },
+      { id: "A07", name: "Multi-Chain Deposit & Withdrawal Sheets", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["A01", "B04", "B05"], desc: "M01 deposit modal (multi-chain QR/address + fiat ramp checkout) and M02 fiat withdrawal sheet." },
+      { id: "A08", name: "Pre-Deposit Backup Intercept & Global Banner", phase: "Phase 3: App (PWA)", lane: "app", days: 1.5, track: "App", assignee: "Unassigned", deps: ["A02", "A07"], desc: "Prompt A04 backup before first deposit; show persistent top banner if skipped until verified." },
+      { id: "A09", name: "T01 Manual Trading Sheet & Privy Signing", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["A01", "B06", "B07"], desc: "Custom keypad, quick percentages, real-time quote preview; sign with Privy locally and submit to backend." },
+      { id: "A10", name: "Portfolio Asset View & Event Landings", phase: "Phase 3: App (PWA)", lane: "app", days: 2.0, track: "App", assignee: "Unassigned", deps: ["A01", "B07", "B09"], desc: "Cash balance, holdings with quick sell, unified transaction history, L01/L02 event landings, and S01 share card." },
+
+      // Phase 4: Launch (3)
+      { id: "M01", name: "Cleaner DSP Attribution & Postback Integration", phase: "Phase 4: Launch", lane: "launch", days: 1.5, track: "Launch", assignee: "Unassigned", deps: ["B09", "A02"], desc: "Capture DSP click_id and cleaner_app_id from PWA URL; verify wallet creation, deposit, and first trade postbacks." },
+      { id: "M02", name: "End-to-End Accounting & Trading Smoke Test", phase: "Phase 4: Launch", lane: "launch", days: 2.0, track: "Launch", assignee: "Unassigned", deps: ["A08", "A09", "B07", "A07", "B04", "M01"], desc: "End-to-end rehearsal: DSP click -> Profile -> Privy login -> Multi-chain deposit -> Buy Meme (1% fee) -> Sell -> Withdraw." },
+      { id: "M03", name: "Production Deployment & 10k Traffic Canary", phase: "Phase 4: Launch", lane: "launch", days: 1.5, track: "Launch", assignee: "Unassigned", deps: ["M02"], desc: "Configure RPC failover, DB monitoring, PWA CDN; launch initial 10,000 cleaner impression canary test." }
+    ];
+
+    // Reset storage key to v5 to clear old cached assignments
+    const STORAGE_KEY = "4fam_tasks_unassigned_v5";
+    const DATA_API = "https://api.github.com/repos/yuanlizbyy/4fam-task-graph/contents/task-data.json";
+    let TASKS = [];
+    let sharedRevision = null;
+    let sharedAvailable = false;
+    let dirty = false;
+    let loadingShared = false;
+    let hadStoredTasks = false;
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    }
+
+    function isValidTasks(tasks) {
+      if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > 500) return false;
+      const ids = new Set();
+      for (const task of tasks) {
+        if (!task || typeof task.id !== "string" || !/^[A-Z][A-Z0-9_-]{0,15}$/.test(task.id) || ids.has(task.id)) return false;
+        if (typeof task.name !== "string" || !task.name.trim() || task.name.length > 200) return false;
+        if (typeof task.desc !== "string" || task.desc.length > 4000) return false;
+        if (!Object.hasOwn(LANE_PHASE_NAMES, task.lane)) return false;
+        if (!["Unassigned", "Yuki", "Buzz", "Anton"].includes(task.assignee)) return false;
+        if (typeof task.days !== "number" || !Number.isFinite(task.days) || task.days <= 0 || task.days > 365) return false;
+        if (!Array.isArray(task.deps) || task.deps.some(id => typeof id !== "string")) return false;
+        ids.add(task.id);
+      }
+      if (!tasks.every(task => task.deps.every(id => ids.has(id) && id !== task.id))) return false;
+      const byId = new Map(tasks.map(task => [task.id, task]));
+      const visiting = new Set();
+      const visited = new Set();
+      function visit(id) {
+        if (visiting.has(id)) return false;
+        if (visited.has(id)) return true;
+        visiting.add(id);
+        for (const dep of byId.get(id).deps) if (!visit(dep)) return false;
+        visiting.delete(id);
+        visited.add(id);
+        return true;
+      }
+      return tasks.every(task => visit(task.id));
+    }
+
+    function persistentTasks(tasks) {
+      return tasks.map(({ id, name, phase, lane, days, track, assignee, deps, desc }) =>
+        ({ id, name, phase, lane, days, track, assignee, deps, desc }));
+    }
+
+    function setSaveStatus(message, tone = "normal") {
+      const el = document.getElementById("saveStatus");
+      el.textContent = message;
+      el.style.color = tone === "error" ? "#FDA4AF" : tone === "success" ? "#6EE7B7" : "#CBD5E1";
+      const saveBtn = document.getElementById("saveSharedBtn");
+      saveBtn.disabled = !sharedAvailable || !dirty || loadingShared || !document.getElementById("githubToken").value.trim();
+      saveBtn.style.opacity = saveBtn.disabled ? "0.5" : "1";
+    }
+
+    function safeGetStorage(key) {
+      try {
+        return window.localStorage ? window.localStorage.getItem(key) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      try {
+        if (window.localStorage) window.localStorage.setItem(key, value);
+      } catch (e) {}
+    }
+
+    function safeRemoveStorage(key) {
+      try {
+        if (window.localStorage) window.localStorage.removeItem(key);
+      } catch (e) {}
+    }
+
+    function loadFromHash() {
+      if (window.location.hash && window.location.hash.startsWith("#state=")) {
+        try {
+          const raw = decodeURIComponent(window.location.hash.replace("#state=", ""));
+          const parsed = JSON.parse(raw);
+          if (isValidTasks(parsed)) {
+            TASKS = parsed;
+            dirty = true;
+            recomputeGraph();
+            return true;
+          }
+        } catch (e) {
+          console.warn("Failed to load state from hash:", e);
+        }
+      }
+      return false;
+    }
+
+    function loadTasks() {
+      if (loadFromHash()) return;
+
+      const stored = safeGetStorage(STORAGE_KEY);
+      hadStoredTasks = Boolean(stored);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (isValidTasks(parsed)) {
+            TASKS = parsed;
+          } else {
+            TASKS = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+          }
+        } catch (e) {
+          TASKS = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+        }
+      } else {
+        TASKS = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+      }
+      recomputeGraph();
+    }
+
+    function saveTasks() {
+      safeSetStorage(STORAGE_KEY, JSON.stringify(persistentTasks(TASKS)));
+      hadStoredTasks = true;
+      dirty = true;
+      recomputeGraph();
+      renderAll();
+      setSaveStatus(sharedAvailable ? "Unsaved team changes · saved in this browser" : "Saved in this browser only · team data unavailable");
+    }
+
+    async function loadSharedTasks(force = false) {
+      if (dirty && force && !confirm("Discard your local changes and load the team version?")) return;
+      loadingShared = true;
+      setSaveStatus("Loading team tasks…");
+      try {
+        const response = await fetch(`${DATA_API}?t=${Date.now()}`, {
+          cache: "no-store", headers: { "Accept": "application/vnd.github+json" }
+        });
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        const file = await response.json();
+        const bytes = Uint8Array.from(atob(file.content.replace(/\s/g, "")), char => char.charCodeAt(0));
+        const data = JSON.parse(new TextDecoder().decode(bytes));
+        if (!isValidTasks(data.tasks) || typeof file.sha !== "string") throw new Error("Invalid GitHub data");
+        sharedAvailable = true;
+        sharedRevision = file.sha;
+        const local = JSON.stringify(persistentTasks(TASKS));
+        const remote = JSON.stringify(persistentTasks(data.tasks));
+        const fromShareLink = location.hash.startsWith("#state=");
+        if (force || (!fromShareLink && (!hadStoredTasks || local === remote))) {
+          TASKS = data.tasks;
+          dirty = false;
+        } else if (!fromShareLink && !dirty && confirm("This browser has a different task list. Keep it as an unsaved draft? Press Cancel to use the team version.")) {
+          dirty = true;
+        } else if (!fromShareLink && !dirty) {
+          TASKS = data.tasks;
+        } else {
+          dirty = true;
+        }
+        recomputeGraph();
+        renderAll();
+        safeSetStorage(STORAGE_KEY, JSON.stringify(persistentTasks(TASKS)));
+        hadStoredTasks = true;
+        document.getElementById("reloadSharedBtn").classList.remove("hidden");
+        setSaveStatus(dirty ? "Local draft · save to share with the team" : "Team version loaded", dirty ? "normal" : "success");
+      } catch (error) {
+        sharedAvailable = false;
+        setSaveStatus(`Team data unavailable: ${error.message}. Changes remain in this browser.`, "error");
+      } finally {
+        loadingShared = false;
+        setSaveStatus(document.getElementById("saveStatus").textContent, sharedAvailable && !dirty ? "success" : sharedAvailable ? "normal" : "error");
+      }
+    }
+
+    async function saveSharedTasks() {
+      if (!sharedAvailable || !dirty || loadingShared) return;
+      const token = document.getElementById("githubToken").value.trim();
+      if (!token) {
+        setSaveStatus("Enter your GitHub editor token to save for the team.");
+        return;
+      }
+      loadingShared = true;
+      setSaveStatus("Saving for the team…");
+      try {
+        const payload = JSON.stringify({ version: 1, tasks: persistentTasks(TASKS) }, null, 2) + "\n";
+        const content = btoa(Array.from(new TextEncoder().encode(payload), byte => String.fromCharCode(byte)).join(""));
+        const response = await fetch(DATA_API, {
+          method: "PUT",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: "Update 4fam task graph", sha: sharedRevision, content })
+        });
+        const result = await response.json();
+        if (response.status === 409 || (response.status === 422 && result.message?.includes("sha"))) {
+          setSaveStatus("Someone saved a newer version. Export your draft before reloading the team version.", "error");
+          return;
+        }
+        if (!response.ok) throw new Error(result.message || `GitHub returned ${response.status}`);
+        sharedRevision = result.content.sha;
+        dirty = false;
+        safeSetStorage(STORAGE_KEY, JSON.stringify(persistentTasks(TASKS)));
+        setSaveStatus("Saved for the team", "success");
+      } catch (error) {
+        setSaveStatus(`Team save failed: ${error.message}. Your browser draft is retained.`, "error");
+      } finally {
+        loadingShared = false;
+        const message = document.getElementById("saveStatus").textContent;
+        const tone = message.includes("failed") || message.includes("newer version") ? "error" : "success";
+        setSaveStatus(message, tone);
+      }
+    }
+
+    let taskMap = {};
+    function recomputeGraph() {
+      taskMap = {};
+      TASKS.forEach(t => {
+        t.dependents = [];
+        // Ensure assignee is string
+        if (!t.assignee || t.assignee === "null") t.assignee = "Unassigned";
+        taskMap[t.id] = t;
+      });
+      TASKS.forEach(t => {
+        t.deps = (t.deps || []).filter(depId => taskMap[depId]);
+        t.deps.forEach(depId => {
+          if (taskMap[depId]) {
+            taskMap[depId].dependents.push(t.id);
+          }
+        });
+      });
+    }
+
+    function getAssigneeBadge(assignee) {
+      if (assignee === "Yuki") {
+        return `<span class="badge badge-yuki">🟣 Yuki</span>`;
+      } else if (assignee === "Buzz") {
+        return `<span class="badge badge-buzz">🔵 Buzz</span>`;
+      } else if (assignee === "Anton") {
+        return `<span class="badge badge-anton">🟢 Anton</span>`;
+      } else {
+        return `<span class="badge badge-unassigned">⚪ Unassigned</span>`;
+      }
+    }
+
+    let currentSelectedId = null;
+    let currentFilterTrack = "all";
+    let currentFilterOwner = "all";
+
+    // DOM Elements
+    const svgLayer = document.getElementById("svgLayer");
+    const searchInput = document.getElementById("searchInput");
+    const resetBtn = document.getElementById("resetBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const importBtn = document.getElementById("importBtn");
+    const jsonFileInput = document.getElementById("jsonFileInput");
+    const shareUrlBtn = document.getElementById("shareUrlBtn");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const activeStateText = document.getElementById("activeStateText");
+    const taskCountBadge = document.getElementById("taskCountBadge");
+
+    // Inspector Elements
+    const inspId = document.getElementById("inspId");
+    const inspTitle = document.getElementById("inspTitle");
+    const inspDays = document.getElementById("inspDays");
+    const inspPhase = document.getElementById("inspPhase");
+    const inspDesc = document.getElementById("inspDesc");
+    const inspAssigneeSelect = document.getElementById("inspAssigneeSelect");
+    const inspUpstreamList = document.getElementById("inspUpstreamList");
+    const inspUpstreamCount = document.getElementById("inspUpstreamCount");
+    const inspDownstreamList = document.getElementById("inspDownstreamList");
+    const inspDownstreamCount = document.getElementById("inspDownstreamCount");
+    const editTaskBtn = document.getElementById("editTaskBtn");
+    const deleteTaskBtn = document.getElementById("deleteTaskBtn");
+
+    // Modal Elements
+    const taskModal = document.getElementById("taskModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const cancelModalBtn = document.getElementById("cancelModalBtn");
+    const taskForm = document.getElementById("taskForm");
+    const formMode = document.getElementById("formMode");
+    const formOriginalId = document.getElementById("formOriginalId");
+    const formId = document.getElementById("formId");
+    const formName = document.getElementById("formName");
+    const formLane = document.getElementById("formLane");
+    const formAssignee = document.getElementById("formAssignee");
+    const formDays = document.getElementById("formDays");
+    const formDesc = document.getElementById("formDesc");
+    const formDepsContainer = document.getElementById("formDepsContainer");
+
+    const LANE_PHASE_NAMES = {
+      spikes: "Phase 0: Spikes",
+      data: "Phase 1: Data Backend",
+      backend: "Phase 2: 4fam Backend",
+      app: "Phase 3: App (PWA)",
+      launch: "Phase 4: Launch"
+    };
+
+    const LANE_TRACK_NAMES = {
+      spikes: "Research",
+      data: "Data",
+      backend: "Backend",
+      app: "App",
+      launch: "Launch"
+    };
+
+    function renderAll() {
+      // Clear lanes
+      ["spikes", "data", "backend", "app", "launch"].forEach(lane => {
+        const laneEl = document.getElementById(`lane-${lane}`);
+        if (laneEl) laneEl.innerHTML = "";
+      });
+
+      // Update counters
+      const counts = { spikes: 0, data: 0, backend: 0, app: 0, launch: 0 };
+      const ownerCounts = { Yuki: 0, Buzz: 0, Anton: 0, Unassigned: 0 };
+      let totalDays = 0;
+
+      TASKS.forEach(t => {
+        if (counts[t.lane] !== undefined) counts[t.lane]++;
+        const owner = (t.assignee && ownerCounts[t.assignee] !== undefined) ? t.assignee : "Unassigned";
+        ownerCounts[owner]++;
+        totalDays += (t.days || 0);
+      });
+
+      document.getElementById("badge-spikes").innerText = `${counts.spikes} Spikes`;
+      document.getElementById("badge-data").innerText = `${counts.data} Tasks`;
+      document.getElementById("badge-backend").innerText = `${counts.backend} Tasks`;
+      document.getElementById("badge-app").innerText = `${counts.app} Tasks`;
+      document.getElementById("badge-launch").innerText = `${counts.launch} Tasks`;
+
+      document.getElementById("cnt-Yuki").innerText = `(${ownerCounts.Yuki})`;
+      document.getElementById("cnt-Buzz").innerText = `(${ownerCounts.Buzz})`;
+      document.getElementById("cnt-Anton").innerText = `(${ownerCounts.Anton})`;
+      document.getElementById("cnt-Unassigned").innerText = `(${ownerCounts.Unassigned})`;
+
+      taskCountBadge.innerText = `${TASKS.length} Tasks · ${totalDays.toFixed(1)}d Total (${ownerCounts.Unassigned} unassigned)`;
+
+      // Render cards
+      TASKS.forEach(task => {
+        const laneEl = document.getElementById(`lane-${task.lane}`);
+        if (!laneEl) return;
+
+        const card = document.createElement("div");
+        card.id = `card-${task.id}`;
+        card.className = "node-card";
+        card.dataset.id = task.id;
+        card.dataset.track = task.track;
+        card.dataset.assignee = task.assignee || "Unassigned";
+
+        card.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; margin-bottom: 0.375rem;">
+            <div style="display: flex; align-items: center; gap: 0.375rem;">
+              <span style="font-family: monospace; font-size: 0.75rem; font-weight: 700; color: #FCD34D; background: rgba(245, 158, 11, 0.15); padding: 0.1rem 0.375rem; border-radius: 0.25rem; border: 1px solid rgba(245, 158, 11, 0.3);">${escapeHtml(task.id)}</span>
+              <span style="font-size: 0.6875rem; color: #94A3B8; font-family: monospace; background: #0F172A; padding: 0.1rem 0.375rem; border-radius: 0.25rem;">${escapeHtml(task.days)}d</span>
+            </div>
+            ${getAssigneeBadge(task.assignee)}
+          </div>
+          <div style="font-size: 0.75rem; font-weight: 600; color: #F8FAFC; line-height: 1.35; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(task.name)}</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.6875rem; color: #94A3B8; padding-top: 0.375rem; border-top: 1px solid #1E293B;">
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: ${task.deps.length ? '#34D399' : '#64748B'}; font-weight: 500;">
+              ⬅ ${task.deps.length} Pre
+            </span>
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: ${task.dependents.length ? '#FBBF24' : '#64748B'}; font-weight: 500;">
+              ${task.dependents.length} Post ➡
+            </span>
+          </div>
+        `;
+
+        card.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectTask(task.id);
+        });
+
+        laneEl.appendChild(card);
+      });
+
+      applyFilter();
+
+      if (currentSelectedId && taskMap[currentSelectedId]) {
+        const selectedId = currentSelectedId;
+        currentSelectedId = null;
+        selectTask(selectedId);
+      } else {
+        clearSelection();
+      }
+    }
+
+    function selectTask(taskId) {
+      if (currentSelectedId === taskId) {
+        clearSelection();
+        return;
+      }
+
+      currentSelectedId = taskId;
+      const target = taskMap[taskId];
+      if (!target) return;
+
+      const ownerDisplay = target.assignee && target.assignee !== "Unassigned" ? target.assignee : "Unassigned";
+      activeStateText.innerHTML = `Selected: <span style="color: #60A5FA; font-weight: 700;">[${escapeHtml(target.id)}] ${escapeHtml(target.name)}</span> (${escapeHtml(ownerDisplay)}) · Pre: ${target.deps.length} · Post: ${target.dependents.length}`;
+
+      TASKS.forEach(t => {
+        const el = document.getElementById(`card-${t.id}`);
+        if (!el) return;
+
+        el.classList.remove("selected", "upstream", "downstream", "dimmed");
+
+        if (t.id === taskId) {
+          el.classList.add("selected");
+        } else if (target.deps.includes(t.id)) {
+          el.classList.add("upstream");
+        } else if (target.dependents.includes(t.id)) {
+          el.classList.add("downstream");
+        } else {
+          el.classList.add("dimmed");
+        }
+      });
+
+      editTaskBtn.classList.remove("hidden");
+      deleteTaskBtn.classList.remove("hidden");
+
+      updateInspector(target);
+      drawLines(target);
+    }
+
+    function clearSelection() {
+      currentSelectedId = null;
+      activeStateText.innerText = "Status: Overview mode (Click any card to inspect or assign)";
+      svgLayer.innerHTML = `
+        <defs>
+          <marker id="arrow-upstream" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981" />
+          </marker>
+          <marker id="arrow-downstream" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#F59E0B" />
+          </marker>
+        </defs>
+      `;
+
+      TASKS.forEach(t => {
+        const el = document.getElementById(`card-${t.id}`);
+        if (!el) return;
+        el.classList.remove("selected", "upstream", "downstream", "dimmed");
+      });
+
+      editTaskBtn.classList.add("hidden");
+      deleteTaskBtn.classList.add("hidden");
+      resetInspector();
+    }
+
+    function drawLines(target) {
+      const defs = svgLayer.querySelector("defs").outerHTML;
+      svgLayer.innerHTML = defs;
+
+      const targetEl = document.getElementById(`card-${target.id}`);
+      if (!targetEl) return;
+      const targetRect = targetEl.getBoundingClientRect();
+      const canvasRect = svgLayer.getBoundingClientRect();
+
+      const targetX = targetRect.left - canvasRect.left;
+      const targetY = targetRect.top - canvasRect.top + targetRect.height / 2;
+      const targetRightX = targetX + targetRect.width;
+
+      target.deps.forEach(depId => {
+        const depEl = document.getElementById(`card-${depId}`);
+        if (!depEl) return;
+        const depRect = depEl.getBoundingClientRect();
+
+        const fromX = depRect.left - canvasRect.left + depRect.width;
+        const fromY = depRect.top - canvasRect.top + depRect.height / 2;
+        const toX = targetX;
+        const toY = targetY;
+
+        const dx = Math.abs(toX - fromX) * 0.5;
+        const pathData = `M ${fromX} ${fromY} C ${fromX + dx} ${fromY}, ${toX - dx} ${toY}, ${toX} ${toY}`;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathData);
+        path.setAttribute("class", "line-upstream");
+        path.setAttribute("fill", "none");
+        path.setAttribute("marker-end", "url(#arrow-upstream)");
+        svgLayer.appendChild(path);
+      });
+
+      target.dependents.forEach(depId => {
+        const depEl = document.getElementById(`card-${depId}`);
+        if (!depEl) return;
+        const depRect = depEl.getBoundingClientRect();
+
+        const fromX = targetRightX;
+        const fromY = targetY;
+        const toX = depRect.left - canvasRect.left;
+        const toY = depRect.top - canvasRect.top + depRect.height / 2;
+
+        const dx = Math.abs(toX - fromX) * 0.5;
+        const pathData = `M ${fromX} ${fromY} C ${fromX + dx} ${fromY}, ${toX - dx} ${toY}, ${toX} ${toY}`;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathData);
+        path.setAttribute("class", "line-downstream");
+        path.setAttribute("fill", "none");
+        path.setAttribute("marker-end", "url(#arrow-downstream)");
+        svgLayer.appendChild(path);
+      });
+    }
+
+    function updateInspector(task) {
+      inspId.innerText = task.id;
+      inspTitle.innerText = task.name;
+      inspDays.innerText = `${task.days} d`;
+      inspPhase.innerText = `Phase: ${task.phase}`;
+      inspDesc.innerText = task.desc;
+      inspAssigneeSelect.value = task.assignee || "Unassigned";
+
+      inspUpstreamCount.innerText = task.deps.length;
+      if (task.deps.length === 0) {
+        inspUpstreamList.innerHTML = `<span class="text-slate-500 italic">No prerequisites (Can start immediately)</span>`;
+      } else {
+        inspUpstreamList.innerHTML = task.deps.map(id => {
+          const t = taskMap[id];
+          return `
+            <button class="btn btn-secondary text-emerald-300" onclick="selectTask('${id}')">
+              <span style="font-family: monospace; font-weight: bold;">${escapeHtml(id)}</span>
+              <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t ? t.name : "")}</span>
+            </button>
+          `;
+        }).join("");
+      }
+
+      inspDownstreamCount.innerText = task.dependents.length;
+      if (task.dependents.length === 0) {
+        inspDownstreamList.innerHTML = `<span class="text-slate-500 italic">No downstream dependents (Terminal milestone)</span>`;
+      } else {
+        inspDownstreamList.innerHTML = task.dependents.map(id => {
+          const t = taskMap[id];
+          return `
+            <button class="btn btn-secondary text-amber-300" onclick="selectTask('${id}')">
+              <span style="font-family: monospace; font-weight: bold;">${escapeHtml(id)}</span>
+              <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t ? t.name : "")}</span>
+            </button>
+          `;
+        }).join("");
+      }
+    }
+
+    function resetInspector() {
+      inspId.innerText = "ID";
+      inspTitle.innerText = "Click any task card above to inspect or assign";
+      inspDays.innerText = "-- d";
+      inspPhase.innerText = "Phase: --";
+      inspDesc.innerText = "Select a task card above to view its technical deliverables, assign owner, and explore dependency relationships.";
+      inspAssigneeSelect.value = "Unassigned";
+      inspUpstreamCount.innerText = "0";
+      inspUpstreamList.innerHTML = `<span class="text-slate-500 italic">No prerequisites</span>`;
+      inspDownstreamCount.innerText = "0";
+      inspDownstreamList.innerHTML = `<span class="text-slate-500 italic">No downstream dependents</span>`;
+    }
+
+    // Quick Assign from Inspector
+    inspAssigneeSelect.addEventListener("change", (e) => {
+      if (!currentSelectedId || !taskMap[currentSelectedId]) return;
+      const target = taskMap[currentSelectedId];
+      target.assignee = e.target.value;
+      saveTasks();
+      selectTask(currentSelectedId);
+    });
+
+    function applyFilter() {
+      const q = searchInput.value.toLowerCase().trim();
+      TASKS.forEach(t => {
+        const el = document.getElementById(`card-${t.id}`);
+        if (!el) return;
+        const matchSearch = t.id.toLowerCase().includes(q) || 
+                            t.name.toLowerCase().includes(q) || 
+                            t.desc.toLowerCase().includes(q);
+        const matchTrack = (currentFilterTrack === "all" || t.track === currentFilterTrack);
+        
+        let matchOwner = true;
+        if (currentFilterOwner === "Unassigned") {
+          matchOwner = (!t.assignee || t.assignee === "Unassigned");
+        } else if (currentFilterOwner !== "all") {
+          matchOwner = (t.assignee === currentFilterOwner);
+        }
+
+        if (matchSearch && matchTrack && matchOwner) {
+          el.style.display = "";
+        } else {
+          el.style.display = "none";
+        }
+      });
+    }
+
+    // Modal Handlers
+    function openModal(mode, task = null) {
+      formMode.value = mode;
+      modalTitle.innerText = mode === "create" ? "Create New Task" : `Edit Task: [${task.id}]`;
+
+      if (mode === "create") {
+        formOriginalId.value = "";
+        formId.value = "";
+        formId.disabled = false;
+        formName.value = "";
+        formLane.value = "backend";
+        formAssignee.value = "Unassigned";
+        formDays.value = "1.5";
+        formDesc.value = "";
+        populateDepsCheckboxes();
+      } else {
+        formOriginalId.value = task.id;
+        formId.value = task.id;
+        formId.disabled = true;
+        formName.value = task.name;
+        formLane.value = task.lane;
+        formAssignee.value = task.assignee || "Unassigned";
+        formDays.value = task.days;
+        formDesc.value = task.desc;
+        populateDepsCheckboxes(task.id, task.deps);
+      }
+
+      taskModal.classList.remove("hidden");
+    }
+
+    function closeModal() {
+      taskModal.classList.add("hidden");
+    }
+
+    function populateDepsCheckboxes(excludeId = null, selectedDeps = []) {
+      formDepsContainer.innerHTML = "";
+      TASKS.forEach(t => {
+        if (t.id === excludeId) return;
+        const isChecked = selectedDeps.includes(t.id);
+        const item = document.createElement("label");
+        item.style.cssText = "display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem; border-radius: 0.375rem; cursor: pointer; color: #CBD5E1;";
+        item.innerHTML = `
+          <input type="checkbox" name="taskDeps" value="${escapeHtml(t.id)}" ${isChecked ? "checked" : ""}>
+          <span style="font-family: monospace; font-weight: bold; color: #FBBF24;">${escapeHtml(t.id)}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.name)}</span>
+        `;
+        formDepsContainer.appendChild(item);
+      });
+    }
+
+    taskForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const previousTasks = JSON.parse(JSON.stringify(persistentTasks(TASKS)));
+      const mode = formMode.value;
+      const id = formId.value.trim().toUpperCase();
+      const name = formName.value.trim();
+      const lane = formLane.value;
+      const assignee = formAssignee.value;
+      const days = parseFloat(formDays.value) || 1.5;
+      const desc = formDesc.value.trim();
+
+      const selectedDeps = Array.from(document.querySelectorAll('input[name="taskDeps"]:checked')).map(cb => cb.value);
+
+      if (mode === "create") {
+        if (taskMap[id]) {
+          alert(`Task ID ${id} already exists!`);
+          return;
+        }
+        const newTask = {
+          id,
+          name,
+          lane,
+          phase: LANE_PHASE_NAMES[lane] || "Custom",
+          track: LANE_TRACK_NAMES[lane] || "Backend",
+          assignee,
+          days,
+          desc,
+          deps: selectedDeps
+        };
+        TASKS.push(newTask);
+      } else {
+        const originalId = formOriginalId.value;
+        const task = TASKS.find(t => t.id === originalId);
+        if (task) {
+          task.name = name;
+          task.lane = lane;
+          task.phase = LANE_PHASE_NAMES[lane] || "Custom";
+          task.track = LANE_TRACK_NAMES[lane] || "Backend";
+          task.assignee = assignee;
+          task.days = days;
+          task.desc = desc;
+          task.deps = selectedDeps;
+        }
+      }
+
+      if (!isValidTasks(TASKS)) {
+        TASKS = previousTasks;
+        recomputeGraph();
+        alert("Invalid task graph. Check task IDs, dependencies, and circular references.");
+        return;
+      }
+      saveTasks();
+      closeModal();
+      selectTask(id);
+    });
+
+    addTaskBtn.addEventListener("click", () => openModal("create"));
+    editTaskBtn.addEventListener("click", () => {
+      if (currentSelectedId && taskMap[currentSelectedId]) {
+        openModal("edit", taskMap[currentSelectedId]);
+      }
+    });
+
+    deleteTaskBtn.addEventListener("click", () => {
+      if (!currentSelectedId) return;
+      if (confirm(`Are you sure you want to delete task [${currentSelectedId}]? All dependent links to this task will also be removed.`)) {
+        const idToDelete = currentSelectedId;
+        TASKS = TASKS.filter(t => t.id !== idToDelete);
+        TASKS.forEach(t => {
+          t.deps = t.deps.filter(depId => depId !== idToDelete);
+        });
+        clearSelection();
+        saveTasks();
+      }
+    });
+
+    closeModalBtn.addEventListener("click", closeModal);
+    cancelModalBtn.addEventListener("click", closeModal);
+
+    // Track Filter Buttons
+    document.querySelectorAll(".track-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".track-btn").forEach(b => {
+          b.className = "track-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition";
+        });
+        btn.className = "track-btn px-2 py-1 rounded-lg font-medium text-amber-300 bg-amber-400/15 transition";
+        currentFilterTrack = btn.dataset.track;
+        applyFilter();
+        clearSelection();
+      });
+    });
+
+    // Owner Filter Buttons
+    document.querySelectorAll(".owner-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".owner-btn").forEach(b => {
+          b.className = "owner-btn px-2 py-1 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition";
+        });
+        btn.className = "owner-btn px-2 py-1 rounded-lg font-medium text-amber-300 bg-amber-400/15 transition";
+        currentFilterOwner = btn.dataset.owner;
+        applyFilter();
+        clearSelection();
+      });
+    });
+
+    // Search
+    searchInput.addEventListener("input", () => {
+      applyFilter();
+      clearSelection();
+    });
+
+    // Export JSON
+    exportBtn.addEventListener("click", () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(persistentTasks(TASKS), null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "4fam_phase1_tasks.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+
+    // Import JSON
+    importBtn.addEventListener("click", () => jsonFileInput.click());
+    jsonFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (isValidTasks(imported)) {
+            TASKS = imported;
+            saveTasks();
+            alert(`Successfully imported ${TASKS.length} tasks!`);
+          } else {
+            alert("Invalid task JSON. Check IDs, fields, dependencies, and cycles.");
+          }
+        } catch (err) {
+          alert("Error reading JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      jsonFileInput.value = "";
+    });
+
+    // Share the live team page. Older snapshot links with #state= still load as drafts.
+    shareUrlBtn.addEventListener("click", () => {
+      try {
+        const shareUrl = window.location.origin + window.location.pathname;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert(dirty ? "Team link copied. Save your draft for the team before others open it." : "Team link copied. Everyone opening it sees the latest saved tasks.");
+        }).catch(() => {
+          prompt("Copy your shareable URL:", shareUrl);
+        });
+      } catch (err) {
+        alert("Unable to generate share link: " + err.message);
+      }
+    });
+
+    // Reset Defaults
+    resetBtn.addEventListener("click", () => {
+      if (confirm("Reset all tasks, assignees, and dependencies to defaults?")) {
+        safeRemoveStorage(STORAGE_KEY);
+        window.location.hash = "";
+        loadTasks();
+        renderAll();
+        saveTasks();
+      }
+    });
+
+    document.getElementById("githubToken").addEventListener("input", () => {
+      setSaveStatus(dirty ? "Local draft · save to share with the team" : "Team version loaded");
+    });
+    document.getElementById("saveSharedBtn").addEventListener("click", saveSharedTasks);
+    document.getElementById("reloadSharedBtn").addEventListener("click", () => loadSharedTasks(true));
+
+    // Resize lines
+    window.addEventListener("resize", () => {
+      if (currentSelectedId && taskMap[currentSelectedId]) {
+        drawLines(taskMap[currentSelectedId]);
+      }
+    });
+
+    // Background click clears selection
+    document.body.addEventListener("click", (e) => {
+      if (!e.target.closest(".node-card") && !e.target.closest("#inspectorPanel") && !e.target.closest("header") && !e.target.closest("#taskModal")) {
+        clearSelection();
+      }
+    });
+
+    // Boot
+    loadTasks();
+    renderAll();
+    loadSharedTasks();
+  </script>
+</body>
+</html>
